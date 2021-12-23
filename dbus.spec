@@ -16,8 +16,8 @@
 
 Summary:	D-Bus message bus
 Name:		dbus
-Version:	1.13.18
-Release:	7
+Version:	1.13.20
+Release:	1
 License:	GPLv2+ or AFL
 Group:		System/Servers
 Url:		http://www.freedesktop.org/Software/dbus
@@ -73,7 +73,6 @@ per-user-login-session messaging facility.
 Summary:	D-BUS message bus configuration
 Group:		System/Configuration
 BuildArch:	noarch
-%{?systemd_requires}
 
 %description common
 The %{name}-common package provides the configuration and setup files for D-Bus
