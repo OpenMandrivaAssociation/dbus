@@ -195,7 +195,6 @@ COMMON_ARGS="--disable-static --enable-user-session --enable-systemd --with-syst
 	--enable-xml-docs \
 %endif
 	--enable-x11-autolaunch \
-	--with-x \
 	--disable-verbose-mode
 cd ..
 
