@@ -16,7 +16,7 @@
 
 Summary:	D-Bus message bus
 Name:		dbus
-Version:	1.13.20
+Version:	1.13.22
 Release:	1
 License:	GPLv2+ or AFL
 Group:		System/Servers
@@ -336,6 +336,7 @@ EOF
 %{_libdir}/pkgconfig/dbus-%{api}.pc
 %{_includedir}/dbus-1.0/
 %{_libdir}/cmake/DBus1/*.cmake
+%{_datadir}/xml/dbus-1
 
 %files x11
 %{_sysconfdir}/X11/xinit/xinitrc.d/00-start-message-bus.sh
