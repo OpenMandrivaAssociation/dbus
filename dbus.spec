@@ -20,7 +20,7 @@ Version:	1.14.0
 Release:	1
 License:	GPLv2+ or AFL
 Group:		System/Servers
-Url:		http://www.freedesktop.org/Software/dbus
+Url:		https://www.freedesktop.org/wiki/Software/dbus/
 Source0:	http://dbus.freedesktop.org/releases/dbus/%{name}-%{version}.tar.xz
 Source1:	dbus.sysusers
 Source2:	https://src.fedoraproject.org/rpms/dbus/raw/master/f/00-start-message-bus.sh
@@ -84,11 +84,9 @@ Group:		System/Servers
 # So services can use Requires: dbus to work with either
 # dbus-daemon or dbus-broker
 Provides:	dbus = %{EVRD}
-%{?systemd_requires}
 Requires:	dbus-common = %{EVRD}
 Requires:	%{libname} = %{EVRD}
 Requires:	dbus-tools = %{EVRD}
-%systemd_requires
 Requires(pre):	systemd
 
 %description daemon
@@ -183,7 +181,7 @@ COMMON_ARGS="--disable-static --enable-user-session --enable-systemd --with-syst
 	--with-systemduserunitdir=%{_userunitdir} --enable-inotify --enable-libaudit --disable-selinux \
 	--with-system-pid-file=%{_rundir}/messagebus.pid  \
 	--with-system-socket=%{_rundir}/dbus/system_bus_socket \
-	--libexecdir=%{_libexecdir}/dbus-%{api}"
+	--libexecdir=%{_libexecdir}/dbus-%{api}  --runstatedir=/run"
 
 %configure \
 	$COMMON_ARGS \
@@ -206,7 +204,7 @@ COMMON_ARGS="--disable-static --enable-user-session --enable-systemd --with-syst
 	--with-systemduserunitdir=%{_userunitdir} --enable-inotify --enable-libaudit --disable-selinux \
 	--with-system-pid-file=%{_rundir}/messagebus.pid  \
 	--with-system-socket=%{_rundir}/dbus/system_bus_socket \
-	--libexecdir=%{_libexecdir}/dbus-%{api}"
+	--libexecdir=%{_libexecdir}/dbus-%{api}  --runstatedir=/run"
 
 %configure \
 	$COMMON_ARGS \
