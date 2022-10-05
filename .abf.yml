@@ -1,2 +1,3 @@
 sources:
-  dbus-1.14.2.tar.xz: 03520d47c00558371519c57923281d3ad99599e6
+  dbus-1.15.2.tar.xz: 5cb3f74b408f97e91247a8e82366a60028bf2ecb
+  files-before-rpm: b9beb35b5fe42a97efc42bcf98fe0636400ae73d
