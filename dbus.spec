@@ -12,8 +12,6 @@
 %define lib32name libdbus-%{api}_%{major}
 %define dev32name libdbus-%{api}-devel
 
-%define git_url git://git.freedesktop.org/git/dbus/dbus
-
 Summary:	D-Bus message bus
 Name:		dbus
 Version:	1.15.4
@@ -36,21 +34,11 @@ Patch5:		dbus-1.8.0-fix-disabling-of-xml-docs.patch
 # (tpg) ClearLinux patches
 Patch6:		malloc_trim.patch
 Patch7:		memory.patch
-%ifnarch riscv64
-BuildRequires:	asciidoc
-BuildRequires:	docbook2x
-BuildRequires:	docbook-dtd412-xml
-BuildRequires:	doxygen
-BuildRequires:	xmlto
-%endif
-BuildRequires:	libtool
-BuildRequires:	autoconf-archive
+BuildRequires:	meson
 BuildRequires:	pkgconfig(expat)
-BuildRequires:	pkgconfig(glib-2.0)
 BuildRequires:	pkgconfig(libcap-ng)
-BuildRequires:	pkgconfig(sm)
-BuildRequires:	pkgconfig(x11)
 BuildRequires:	pkgconfig(libsystemd)
+BuildRequires:	pkgconfig(x11)
 %ifarch %{x86_64}
 BuildRequires:	lib64unwind1.0
 %endif
@@ -59,9 +47,7 @@ BuildRequires:	systemd-rpm-macros
 BuildRequires:	rpm-build >= 1:5.4.10-79
 Requires:	dbus-broker >= 16
 %if %{with compat32}
-BuildRequires:	devel(libSM)
-BuildRequires:	devel(libX11)
-BuildRequires:	devel(libexpat)
+BuildRequires:	libc6
 %endif
 
 %description
@@ -157,80 +143,61 @@ Headers and static libraries for D-Bus.
 
 %prep
 %autosetup -p1
-autoreconf -fi
-
-export CONFIGURE_TOP="$(pwd)"
-%if %{with compat32}
-mkdir build32
-cd build32
-# We use --disable-modular-tests to avoid dragging in
-# a glib2.0 dependency -- glib2.0 depends on dbus, and
-# circular dependencies are ugly
-%configure32 \
-	--disable-selinux \
-	--disable-systemd \
-	--disable-modular-tests \
-	--enable-x11-autolaunch
-cd ..
-%endif
-
-mkdir build
-cd build
-%serverbuild_hardened
-COMMON_ARGS="--disable-static --enable-user-session --enable-systemd --with-systemdsystemunitdir=%{_unitdir} \
-	--with-systemduserunitdir=%{_userunitdir} --enable-inotify --enable-libaudit --disable-selinux \
-	--with-system-pid-file=%{_rundir}/messagebus.pid  \
-	--with-system-socket=%{_rundir}/dbus/system_bus_socket \
-	--libexecdir=%{_libexecdir}/dbus-%{api}  --runstatedir=/run"
-
-%configure \
-	$COMMON_ARGS \
-	--enable-libaudit \
-	--disable-tests \
-	--disable-asserts \
-%ifnarch riscv64
-	--enable-doxygen-docs \
-	--enable-xml-docs \
-%endif
-	--enable-x11-autolaunch \
-	--disable-verbose-mode
-cd ..
-
-# Build an X11-less version of dbus-launch (e.g. for Wayland sessions)
-mkdir build-nox
-cd build-nox
-%serverbuild_hardened
-COMMON_ARGS="--disable-static --enable-user-session --enable-systemd --with-systemdsystemunitdir=%{_unitdir} \
-	--with-systemduserunitdir=%{_userunitdir} --enable-inotify --enable-libaudit --disable-selinux \
-	--with-system-pid-file=%{_rundir}/messagebus.pid  \
-	--with-system-socket=%{_rundir}/dbus/system_bus_socket \
-	--libexecdir=%{_libexecdir}/dbus-%{api}  --runstatedir=/run"
-
-%configure \
-	$COMMON_ARGS \
-	--disable-verbose-mode \
-	--disable-tests \
-	--disable-asserts \
-	--disable-doxygen-docs \
-	--disable-xml-docs \
-	--disable-x11-autolaunch \
-	--without-x
 
 %build
 %if %{with compat32}
-%make_build -C build32
+# We use --disable-modular-tests to avoid dragging in
+# a glib2.0 dependency -- glib2.0 depends on dbus, and
+# circular dependencies are ugly
+%meson32 \
+    -Dapparmor=disabled \
+    -Dchecks=false \
+    -Ddoxygen_docs=disabled \
+    -Dducktype_docs=disabled \
+    -Dlaunchd=disabled \
+    -Dkqueue=disabled \
+    -Dlibaudit=disabled \
+    -Dmessage_bus=false \
+    -Dmodular_tests=disabled \
+    -Dqt_help=disabled \
+    -Drelocation=disabled \
+    -Dselinux=disabled \
+    -Dstats=false \
+    -Dsystemd=disabled \
+    -Dtools=false \
+    -Dtraditional_activation=false \
+    -Dx11_autolaunch=disabled \
+    -Dxml_docs=disabled
+
+%meson_build -C build32
 %endif
-%make_build -C build
-%make_build -C build-nox
+
+%meson \
+    --libexecdir=%{_libexecdir}/dbus-%{api} \
+    -Dapparmor=disabled \
+    -Dchecks=false \
+    -Ddoxygen_docs=disabled \
+    -Dducktype_docs=disabled \
+    -Dlaunchd=disabled \
+    -Dkqueue=disabled \
+    -Dlibaudit=disabled \
+    -Dmodular_tests=disabled \
+    -Dqt_help=disabled \
+    -Druntime_dir=%{_rundir} \
+    -Dselinux=disabled \
+    -Dsystem_pid_file=%{_rundir}/messagebus.pid \
+    -Dsystem_socket=%{_rundir}/dbus/system_bus_socket \
+    -Dxml_docs=disabled
+
+%meson_build
 
 %install
 %if %{with compat32}
-%make_install -C build32
+%meson_install -C build32
 # We don't need the 32-bit version
 rm -rf %{buildroot}%{_libexecdir}
 %endif
-%make_install -C build
-cp build-nox/tools/.libs/dbus-launch %{buildroot}%{_bindir}/dbus-launch-nox
+%meson_install -C build
 
 # Obsolete, but still widely used, for drop-in configuration snippets.
 install --directory %{buildroot}%{_sysconfdir}/dbus-%{api}/session.d
@@ -311,16 +278,10 @@ EOF
 %{_bindir}/dbus-cleanup-sockets
 %{_bindir}/dbus-run-session
 %{_bindir}/dbus-test-tool
-%ifnarch riscv64
-%doc %{_mandir}/man1/dbus-cleanup-sockets.1*
-%doc %{_mandir}/man1/dbus-daemon.1*
-%doc %{_mandir}/man1/dbus-run-session.1*
-%doc %{_mandir}/man1/dbus-test-tool.1*
-%endif
 %dir %{_libexecdir}/dbus-%{api}
 # See doc/system-activation.txt in source tarball for the rationale
 # behind these permissions
-%attr(4750,root,messagebus) %{_libexecdir}/dbus-1/dbus-daemon-launch-helper
+%attr(4750,root,messagebus) %{_libexecdir}/dbus-%{api}/dbus-daemon-launch-helper
 %{_tmpfilesdir}/dbus.conf
 %{_unitdir}/dbus-daemon.service
 %{_userunitdir}/dbus-daemon.service
@@ -339,22 +300,12 @@ EOF
 %files x11
 %{_sysconfdir}/X11/xinit/xinitrc.d/00-start-message-bus.sh
 %{_bindir}/dbus-launch
-%ifnarch riscv64
-%doc %{_mandir}/man1/dbus-launch.1*
-%endif
 
 %files tools
-%{_bindir}/dbus-launch-nox
 %{_bindir}/dbus-send
 %{_bindir}/dbus-monitor
 %{_bindir}/dbus-update-activation-environment
 %{_bindir}/dbus-uuidgen
-%ifnarch riscv64
-%doc %{_mandir}/man1/dbus-monitor.1*
-%doc %{_mandir}/man1/dbus-send.1*
-%doc %{_mandir}/man1/dbus-update-activation-environment.1*
-%doc %{_mandir}/man1/dbus-uuidgen.1*
-%endif
 
 %files doc
 %doc COPYING NEWS
