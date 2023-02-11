@@ -15,7 +15,7 @@
 Summary:	D-Bus message bus
 Name:		dbus
 Version:	1.15.4
-Release:	1
+Release:	2
 License:	GPLv2+ or AFL
 Group:		System/Servers
 Url:		https://www.freedesktop.org/wiki/Software/dbus/
@@ -198,6 +198,14 @@ Headers and static libraries for D-Bus.
 rm -rf %{buildroot}%{_libexecdir}
 %endif
 %meson_install -C build
+
+# FIXME
+# meson incorrectly sets prefix to ${pcfiledir}/..
+# This is a workaround, but really meson should be fixed
+sed -i -e 's,^prefix=.*,prefix=%{_prefix},' %{buildroot}%{_libdir}/pkgconfig/*.pc
+%if %{with compat32}
+sed -i -e 's,^prefix=.*,prefix=%{_prefix},' %{buildroot}%{_prefix}/lib/pkgconfig/*.pc
+%endif
 
 # Obsolete, but still widely used, for drop-in configuration snippets.
 install --directory %{buildroot}%{_sysconfdir}/dbus-%{api}/session.d
