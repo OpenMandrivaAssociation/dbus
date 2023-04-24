@@ -5,6 +5,11 @@
 %bcond_with compat32
 %endif
 
+# Non-systemd version is needed for bootstrapping to avoid
+# circular dependencies
+# (dbus requires libsystemd, libsystemd requires dbus)
+%bcond_without systemd
+
 %define api 1
 %define major 3
 %define libname %mklibname dbus- %{api} %{major}
@@ -37,7 +42,9 @@ Patch7:		memory.patch
 BuildRequires:	meson
 BuildRequires:	pkgconfig(expat)
 BuildRequires:	pkgconfig(libcap-ng)
+%if %{with systemd}
 BuildRequires:	pkgconfig(libsystemd)
+%endif
 BuildRequires:	pkgconfig(x11)
 %ifarch %{x86_64}
 BuildRequires:	lib64unwind1.0
@@ -73,7 +80,9 @@ Provides:	dbus = %{EVRD}
 Requires:	dbus-common = %{EVRD}
 Requires:	%{libname} = %{EVRD}
 Requires:	dbus-tools = %{EVRD}
+%if %{with systemd}
 Requires(pre):	systemd
+%endif
 
 %description daemon
 D-BUS is a system for sending messages between applications. It is
@@ -150,44 +159,47 @@ Headers and static libraries for D-Bus.
 # a glib2.0 dependency -- glib2.0 depends on dbus, and
 # circular dependencies are ugly
 %meson32 \
-    -Dapparmor=disabled \
-    -Dchecks=false \
-    -Ddoxygen_docs=disabled \
-    -Dducktype_docs=disabled \
-    -Dlaunchd=disabled \
-    -Dkqueue=disabled \
-    -Dlibaudit=disabled \
-    -Dmessage_bus=false \
-    -Dmodular_tests=disabled \
-    -Dqt_help=disabled \
-    -Drelocation=disabled \
-    -Dselinux=disabled \
-    -Dstats=false \
-    -Dsystemd=disabled \
-    -Dtools=false \
-    -Dtraditional_activation=false \
-    -Dx11_autolaunch=disabled \
-    -Dxml_docs=disabled
+	-Dapparmor=disabled \
+	-Dchecks=false \
+	-Ddoxygen_docs=disabled \
+	-Dducktype_docs=disabled \
+	-Dlaunchd=disabled \
+	-Dkqueue=disabled \
+	-Dlibaudit=disabled \
+	-Dmessage_bus=false \
+	-Dmodular_tests=disabled \
+	-Dqt_help=disabled \
+	-Drelocation=disabled \
+	-Dselinux=disabled \
+	-Dstats=false \
+	-Dsystemd=disabled \
+	-Dtools=false \
+	-Dtraditional_activation=false \
+	-Dx11_autolaunch=disabled \
+	-Dxml_docs=disabled
 
 %meson_build -C build32
 %endif
 
 %meson \
-    --libexecdir=%{_libexecdir}/dbus-%{api} \
-    -Dapparmor=disabled \
-    -Dchecks=false \
-    -Ddoxygen_docs=disabled \
-    -Dducktype_docs=disabled \
-    -Dlaunchd=disabled \
-    -Dkqueue=disabled \
-    -Dlibaudit=disabled \
-    -Dmodular_tests=disabled \
-    -Dqt_help=disabled \
-    -Druntime_dir=%{_rundir} \
-    -Dselinux=disabled \
-    -Dsystem_pid_file=%{_rundir}/messagebus.pid \
-    -Dsystem_socket=%{_rundir}/dbus/system_bus_socket \
-    -Dxml_docs=disabled
+	--libexecdir=%{_libexecdir}/dbus-%{api} \
+	-Dapparmor=disabled \
+	-Dchecks=false \
+	-Ddoxygen_docs=disabled \
+	-Dducktype_docs=disabled \
+	-Dlaunchd=disabled \
+	-Dkqueue=disabled \
+	-Dlibaudit=disabled \
+	-Dmodular_tests=disabled \
+	-Dqt_help=disabled \
+	-Druntime_dir=%{_rundir} \
+	-Dselinux=disabled \
+	-Dsystem_pid_file=%{_rundir}/messagebus.pid \
+	-Dsystem_socket=%{_rundir}/dbus/system_bus_socket \
+	-Dxml_docs=disabled \
+%if ! %{with systemd}
+	-Dsystemd=disabled
+%endif
 
 %meson_build
 
@@ -216,6 +228,7 @@ install --directory %{buildroot}%{_datadir}/dbus-1/interfaces
 mkdir -p %{buildroot}%{_var}/lib/dbus
 mkdir -p %{buildroot}/run/dbus
 
+%if %{with systemd}
 # Delete upstream units
 rm -f %{buildroot}%{_unitdir}/dbus.{socket,service}
 rm -f %{buildroot}%{_unitdir}/sockets.target.wants/dbus.socket
@@ -224,7 +237,6 @@ rm -f %{buildroot}%{_userunitdir}/dbus.{socket,service}
 rm -f %{buildroot}%{_userunitdir}/sockets.target.wants/dbus.socket
 
 # Install downstream units
-install -Dp -m755 %{SOURCE2} %{buildroot}%{_sysconfdir}/X11/xinit/xinitrc.d/00-start-message-bus.sh
 install -Dp -m644 %{SOURCE3} %{buildroot}%{_unitdir}/dbus.socket
 install -Dp -m644 %{SOURCE4} %{buildroot}%{_unitdir}/dbus-daemon.service
 install -Dp -m644 %{SOURCE5} %{buildroot}%{_userunitdir}/dbus.socket
@@ -235,7 +247,11 @@ install -d %{buildroot}%{_presetdir}
 cat > %{buildroot}%{_presetdir}/86-%{name}-common.preset << EOF
 enable dbus.socket
 EOF
+%endif
 
+install -Dp -m755 %{SOURCE2} %{buildroot}%{_sysconfdir}/X11/xinit/xinitrc.d/00-start-message-bus.sh
+
+%if %{with systemd}
 %pre daemon
 %sysusers_create_package %{name} %{SOURCE1}
 
@@ -262,6 +278,7 @@ EOF
 %postun daemon
 %systemd_postun dbus-daemon.service
 %systemd_user_postun dbus-daemon.service
+%endif
 
 %files common
 %dir %{_sysconfdir}/dbus-%{api}
@@ -269,19 +286,24 @@ EOF
 %dir %{_sysconfdir}/dbus-%{api}/system.d
 %dir %{_datadir}/dbus-%{api}
 %config(noreplace) %{_sysconfdir}/dbus-%{api}/*.conf
-%{_presetdir}/86-%{name}-common.preset
 %{_datadir}/dbus-%{api}/system-services
 %{_datadir}/dbus-%{api}/services
 %{_datadir}/dbus-%{api}/interfaces
 %{_datadir}/dbus-%{api}/session.conf
 %{_datadir}/dbus-%{api}/system.conf
+%if %{with systemd}
 %{_unitdir}/dbus.socket
 %{_userunitdir}/dbus.socket
+%{_presetdir}/86-%{name}-common.preset
+%endif
 
 %files daemon
 %ghost %dir %{_rundir}/%{name}
 %dir %{_localstatedir}/lib/dbus/
+%if %{with systemd}
 %{_sysusersdir}/dbus.conf
+%{_tmpfilesdir}/dbus.conf
+%endif
 %{_bindir}/dbus-daemon
 %{_bindir}/dbus-cleanup-sockets
 %{_bindir}/dbus-run-session
@@ -290,9 +312,10 @@ EOF
 # See doc/system-activation.txt in source tarball for the rationale
 # behind these permissions
 %attr(4750,root,messagebus) %{_libexecdir}/dbus-%{api}/dbus-daemon-launch-helper
-%{_tmpfilesdir}/dbus.conf
+%if %{with systemd}
 %{_unitdir}/dbus-daemon.service
 %{_userunitdir}/dbus-daemon.service
+%endif
 
 %files -n %{libname}
 %{_libdir}/*dbus-%{api}*.so.%{major}*
