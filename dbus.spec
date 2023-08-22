@@ -19,7 +19,7 @@
 
 Summary:	D-Bus message bus
 Name:		dbus
-Version:	1.15.6
+Version:	1.15.8
 Release:	1
 License:	GPLv2+ or AFL
 Group:		System/Servers
