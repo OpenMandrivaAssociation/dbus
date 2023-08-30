@@ -1,3 +1,5 @@
+%global optflags %{optflags} -Oz
+
 # dbus is used by wine and steam
 %ifarch %{x86_64}
 %bcond_without compat32
@@ -20,7 +22,7 @@
 Summary:	D-Bus message bus
 Name:		dbus
 Version:	1.15.8
-Release:	1
+Release:	2
 License:	GPLv2+ or AFL
 Group:		System/Servers
 Url:		https://www.freedesktop.org/wiki/Software/dbus/
