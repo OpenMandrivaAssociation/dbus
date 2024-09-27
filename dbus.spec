@@ -21,8 +21,8 @@
 
 Summary:	D-Bus message bus
 Name:		dbus
-Version:	1.15.8
-Release:	2
+Version:	1.15.10
+Release:	1
 License:	GPLv2+ or AFL
 Group:		System/Servers
 Url:		https://www.freedesktop.org/wiki/Software/dbus/
@@ -37,7 +37,7 @@ Patch1:		0001-tools-Use-Python3-for-GetAllMatchRules.patch
 Patch2:		dbus-1.8.14-headers-clang.patch
 # (fc) 1.0.2-5mdv disable fatal warnings on check (fd.o bug #13270)
 #Patch3:		dbus-1.0.2-disable_fatal_warning_on_check.patch
-Patch5:		dbus-1.8.0-fix-disabling-of-xml-docs.patch
+#Patch5:		dbus-1.8.0-fix-disabling-of-xml-docs.patch
 # (tpg) ClearLinux patches
 Patch6:		malloc_trim.patch
 Patch7:		memory.patch
@@ -52,8 +52,6 @@ BuildRequires:	pkgconfig(x11)
 BuildRequires:	lib64unwind1.0
 %endif
 BuildRequires:	systemd-rpm-macros
-# To make sure _rundir is defined
-BuildRequires:	rpm-build >= 1:5.4.10-79
 Requires:	dbus-broker >= 16
 %if %{with compat32}
 BuildRequires:	libc6
